@@ -152,7 +152,7 @@ def get_coco_dataset(insize, image_root, annotations,
             d = np.vstack([np.array([0.0, 0.0, labeled]), d])
 
         keypoints = d[:, [1, 0]]  # array of y,x
-        bbox = anno['bbox']
+        bbox = anno['bbox'] #代表的是全身
         is_visible = d[:, 2] == 2
         is_labeled = d[:, 2] >= 1
 

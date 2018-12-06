@@ -16,6 +16,9 @@ matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 import numpy as np
 
+import ipdb
+pdb = ipdb.set_trace
+
 import chainer
 if chainer.backends.cuda.available:
     import cupy as xp
@@ -37,6 +40,30 @@ from utils import parse_size
 COLOR_MAP = {}
 DIRECTED_GRAPHS = [[]]
 DATA_MODULE = None
+
+
+def gene_json(list_):
+    # gt_key points
+    gt_kps_list = list_[0]
+
+    # humans
+    humans_list = list_[1]
+    # 将humans转化成gt_kps的形式
+    pred_kps_list = []
+    for humans in humans_list:
+        pred_kps = []
+        # humans maybe have several person
+        for person in humans:
+            item_pred = [] # 表示每一个人的18个关键点
+            for num in range(1,19):# 代表18个关键点
+                if num in person:
+                    y = (person[num][0] + person[num][2]) / 2
+                    x = (person[num][1] + person[num][3]) / 2
+                    item_pred.append([y, x])
+                else:
+                    item_pred.append([0,0])
+            pred_kps.append(item_pred) # 表示一张图片上的所有人的关键点
+        pred_kps_list.append(pred_kps)
 
 
 def get_feature(model, image):
@@ -68,6 +95,7 @@ def estimate(model, image):
     return get_humans_by_feature(model, feature_map)
 
 
+##### detection_thresh 是score 的阀值
 def get_humans_by_feature(model, feature_map, detection_thresh=0.15):
     resp, conf, x, y, w, h, e = feature_map
     start = time.time()
@@ -124,6 +152,9 @@ def draw_humans(keypoint_names, edges, pil_image, humans, mask=None):
     """
     This is what happens when you use alchemy on humans...
     note that image should be PIL object
+    每一个human有19个关键点
+    edges是固定的，表示对应关键点的连线
+
     """
     start = time.time()
     drawer = ImageDraw.Draw(pil_image)
@@ -146,10 +177,11 @@ def draw_humans(keypoint_names, edges, pil_image, humans, mask=None):
                     pil_image.paste(resized, (xmin, ymin), mask=resized)
                 else:
                     ## 注释了下面两个，不画边框了
-                    pass
-                    #  drawer.rectangle(xy=[xmin, ymin, xmax, ymax],
-                                     #  fill=fill,
-                                     #  outline=COLOR_MAP[keypoint_names[k]])
+                    #  pass
+                    # coco中是整个人体 mpii中是人的头部
+                    drawer.rectangle(xy=[xmin, ymin, xmax, ymax],
+                                     fill=fill,
+                                     outline=COLOR_MAP[keypoint_names[k]])
             else:
                 pass
                 #  drawer.rectangle(xy=[xmin, ymin, xmax, ymax],
@@ -229,6 +261,7 @@ def main():
             seed=config.getint('training_param', 'seed'),
         )
     elif dataset_type == 'coco':
+        # 已经将原来的图片换成固定大小
         test_set = get_coco_dataset(
             insize=parse_size(config.get('model_param', 'insize')),
             image_root=config.get(dataset_type, 'val_images'),
@@ -240,12 +273,20 @@ def main():
 
     model = create_model(config)
 
+    ## 生成用于计算mAP的gt_KPs、pred_KPs
+    mAP = [[], []]
     # 测试多张图片
-    for i in range(10):
+    for i in range(3):
+        #  pdb()
         idx = random.choice(range(len(test_set)))
         image = test_set.get_example(idx)['image']
+        gt_kps = test_set.get_example(idx)['keypoints']
+        # coco person   mpii head
+        gt_bbox = test_set.get_example(idx)['bbox']
         humans = estimate(model,
                         image.astype(np.float32))
+        mAP[0].append(gt_kps)
+        mAP[1].append(humans)
         pil_image = Image.fromarray(image.transpose(1, 2, 0).astype(np.uint8))
         pil_image = draw_humans(
             keypoint_names=model.keypoint_names,
@@ -256,6 +297,25 @@ def main():
 
         pil_image.save('results/result{}.png'.format(i), 'PNG')
 
+    gene_json(mAP)
 
 if __name__ == '__main__':
     main()
+
+
+'''
+get_example 返回如下：
+        return {
+            'path': self.image_paths[i],
+            'keypoint_names': self.keypoint_names,
+            'edges': self.edges,
+            'image': image,
+            'keypoints': keypoints,
+            'bbox': bbox,
+            'is_labeled': is_labeled,
+            'dataset_type': self.dataset_type,
+        }
+
+
+
+'''

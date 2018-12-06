@@ -31,7 +31,7 @@ class KeypointDataset2D(DatasetMixin):
         self.edges = edges
         self.flip_indices = flip_indices
         self.keypoints = keypoints  # [array of y,x]
-        self.bbox = bbox  # [x,y,w,h]
+        self.bbox = bbox  # [x,y,w,h] coco->全身 mpii->头部
         self.is_visible = is_visible
         self.is_labeled = is_labeled
         self.image_paths = image_paths
@@ -43,6 +43,9 @@ class KeypointDataset2D(DatasetMixin):
     def __len__(self):
         return len(self.image_paths)
 
+    #################################
+    # 用于数据增强
+    ##################################
     def transform(self, image, keypoints, bbox, is_labeled):
         _, H, W = image.shape
         # PCA Lighting
@@ -89,6 +92,9 @@ class KeypointDataset2D(DatasetMixin):
 
         return image, keypoints, bbox, is_labeled
 
+    #############################################################
+    #### 按比例变换image keypoints bbox
+    ##############################################################
     def resize(self, image, keypoints, bbox, size):
         _, h, w = image.shape
         new_h, new_w = size
@@ -113,11 +119,16 @@ class KeypointDataset2D(DatasetMixin):
             image, keypoints, bbox, is_labeled = self.cached_samples[i]
         else:
             path = os.path.join(self.image_root, self.image_paths[i])
+            #  import ipdb;ipdb.set_trace()
+            # 原始图片
             image = utils.read_image(path, dtype=np.float32, color=True)
             keypoints = self.keypoints[i]
             bbox = self.bbox[i]
             is_labeled = self.is_labeled[i]
 
+            ####################
+            # 按比例将image keypoints bbox 变成resize的之后的大小
+            ####################
             image, keypoints, bbox = self.resize(image, keypoints, bbox, (h, w))
             if self.use_cache:
                 self.cached_samples[i] = image, keypoints, bbox, is_labeled

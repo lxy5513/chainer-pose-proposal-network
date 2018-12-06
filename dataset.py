@@ -31,7 +31,7 @@ class KeypointDataset2D(DatasetMixin):
         self.edges = edges
         self.flip_indices = flip_indices
         self.keypoints = keypoints  # [array of y,x]
-        self.bbox = bbox  # [x,y,w,h]
+        self.bbox = bbox  # [x,y,w,h] coco->全身 mpii->头部
         self.is_visible = is_visible
         self.is_labeled = is_labeled
         self.image_paths = image_paths

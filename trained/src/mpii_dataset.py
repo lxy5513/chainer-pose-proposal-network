@@ -108,9 +108,11 @@ def get_mpii_dataset(insize, image_root, annotations,
     images = {}
 
     for filename in np.unique([anno['filename'] for anno in annotations]):
+        ## 将同一张图片的ann都放在一起
         images[filename] = [], [], [], []
 
     for anno in annotations:
+        # k 关键点
         is_visible = [anno['is_visible'][k] for k in KEYPOINT_NAMES[1:]]
         if sum(is_visible) < min_num_keypoints:
             continue
@@ -119,8 +121,9 @@ def get_mpii_dataset(insize, image_root, annotations,
         x1, y1, x2, y2 = anno['head_rect']
 
         entry = images[anno['filename']]
+        # entry 改变就等于images改变
         entry[0].append(np.array(keypoints))  # array of y,x
-        entry[1].append(np.array([x1, y1, x2 - x1, y2 - y1]))  # x, y, w, h
+        entry[1].append(np.array([x1, y1, x2 - x1, y2 - y1]))  # x, y, w, h 头部
         entry[2].append(np.array(is_visible, dtype=np.bool))
         entry[3].append(np.ones(len(is_visible), dtype=np.bool))
 

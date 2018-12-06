@@ -110,6 +110,9 @@ class PoseProposalNet(chainer.link.Chain):
         self.gridsize = (int(inW / outW), int(inH / outH))
 
     def get_outsize(self):
+        ###################
+        ## 设置输出文件的大小
+        ###################
         inp = np.zeros((2, 3, self.insize[1], self.insize[0]), dtype=np.float32)
         out = self.forward(inp)
         _, _, h, w = out.shape
