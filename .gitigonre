@@ -1,0 +1,6 @@
+*.npz 
+*bestmodel 
+logs/
+trained/
+results/ 
+outputs/
