@@ -65,6 +65,20 @@ def gene_json(list_):
             pred_kps.append(item_pred) # 表示一张图片上的所有人的关键点
         pred_kps_list.append(pred_kps)
 
+    # gt_bboxs
+    bboxs_list = list_[2]
+
+    for pred, gt, boxs in zip(pred_kps_list, gt_kps_list, bboxs_list):
+        # 比较每一个图片
+        for itemPred, itemGt, box in pred, gt, boxs:
+            # 分别比较每一个人
+
+            # 比较的长度 length
+            h,w = boxs[2:]
+            length = np.sqrt(pow(h,2), pow(w, 2)) * 0.2
+            ## compute percengtage of correct kps
+
+
 
 def get_feature(model, image):
     start = time.time()
@@ -273,8 +287,8 @@ def main():
 
     model = create_model(config)
 
-    ## 生成用于计算mAP的gt_KPs、pred_KPs
-    mAP = [[], []]
+    ## 生成用于计算mAP的gt_KPs、pred_KPs, gt_bbox
+    mAP = [[], [], []]
     # 测试多张图片
     for i in range(3):
         #  pdb()
@@ -282,11 +296,13 @@ def main():
         image = test_set.get_example(idx)['image']
         gt_kps = test_set.get_example(idx)['keypoints']
         # coco person   mpii head
-        gt_bbox = test_set.get_example(idx)['bbox']
+        gt_bboxs = test_set.get_example(idx)['bbox']
+        pdb()
         humans = estimate(model,
                         image.astype(np.float32))
         mAP[0].append(gt_kps)
         mAP[1].append(humans)
+        mAP[2].append(gt_bboxs)
         pil_image = Image.fromarray(image.transpose(1, 2, 0).astype(np.uint8))
         pil_image = draw_humans(
             keypoint_names=model.keypoint_names,

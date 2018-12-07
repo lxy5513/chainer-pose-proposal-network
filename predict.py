@@ -67,16 +67,29 @@ def gene_json(list_):
 
     # gt_bboxs
     bboxs_list = list_[2]
-
+    
+    # 用来判断
+    result_value = []
     for pred, gt, boxs in zip(pred_kps_list, gt_kps_list, bboxs_list):
         # 比较每一个图片
-        for itemPred, itemGt, box in pred, gt, boxs:
+        for itemPred, itemGt, box in zip(pred, gt, boxs):
             # 分别比较每一个人
 
             # 比较的长度 length
-            h,w = boxs[2:]
-            length = np.sqrt(pow(h,2), pow(w, 2)) * 0.2
+            h,w = box[2:]
+            length = np.sqrt((pow(h,2) + pow(w, 2))) * 0.2
             ## compute percengtage of correct kps
+            for pred_point, gt_point in zip(itemPred, itemGt):
+                if np.linalg.norm(pred_point-gt_point) < length:
+                    result_value.append(1) 
+                else:
+                    result_value.append(0)
+    # accuracy 
+    pckValue = np.sum(result_value)/len(result_value)*100
+    print('the mpii@0.2 is {}%'.format(round(pckValue, 2)))
+    pdb()
+
+            
 
 
 
@@ -290,14 +303,13 @@ def main():
     ## 生成用于计算mAP的gt_KPs、pred_KPs, gt_bbox
     mAP = [[], [], []]
     # 测试多张图片
-    for i in range(3):
+    for i in range(30):
         #  pdb()
         idx = random.choice(range(len(test_set)))
         image = test_set.get_example(idx)['image']
         gt_kps = test_set.get_example(idx)['keypoints']
         # coco person   mpii head
         gt_bboxs = test_set.get_example(idx)['bbox']
-        pdb()
         humans = estimate(model,
                         image.astype(np.float32))
         mAP[0].append(gt_kps)
